@@ -1,89 +1,20 @@
+const int LEFT _STEP = 18;
+const int LEFT_DIR = 19;
 
-package org.firstinspires.ftc.teamcode;
+void setup() {
+  pinMode(LEFT_STEP, OUTPUT);
+  pinMode(LEFT_DIR, OUTPUT);
 
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
+  digitalWrite(LEFT _DIR, HIGH);
 
-@TeleOp(name = "gobildaTeleop")
-public class gobildaTeleop extends OpMode {
+  for (int i = 0; i < 200; i++) {
+    digitalWrite(LEFT _STEP, HIGH);
+    delay(2);
 
-    // ================= DRIVE MOTORS =================
-    private DcMotor left_Drive;
-    private DcMotor right_Drive;
+    digitalWrite(LEFT_STEP, LOW);
+    delay(2);
+  }
+}
 
-    // ================= LAUNCHER =================
-    private DcMotorEx launcher;
-
-    // ================= FEEDERS =================
-    private CRServo leftFeeder;
-    private CRServo rightFeeder;
-
-    // ================= CONSTANTS =================
-    private static final double LAUNCHER_TARGET_VELOCITY = 1125;
-    private static final double STOP_SPEED = 0.0;
-    private static final double FEEDER_SPEED = 1.0;
-
-    @Override
-    public void init() {
-
-        // Drive motors
-        left_Drive = hardwareMap.get(DcMotor.class, "left_Drive");
-        right_Drive = hardwareMap.get(DcMotor.class, "right_Drive");
-
-        left_Drive.setDirection(DcMotorSimple.Direction.REVERSE);
-
-        left_Drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        right_Drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
-        // Launcher motor
-        launcher = hardwareMap.get(DcMotorEx.class, "launcher");
-        launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        // Feeder servos
-        leftFeeder = hardwareMap.get(CRServo.class, "left_feeder");
-        rightFeeder = hardwareMap.get(CRServo.class, "right_feeder");
-
-        leftFeeder.setDirection(DcMotorSimple.Direction.REVERSE);
-
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
-    }
-
-    @Override
-    public void loop() {
-
-        // ================= DRIVE =================
-        double forward = -gamepad1.left_stick_y;
-        double turn = gamepad1.right_stick_x;
-
-        left_Drive.setPower(forward + turn);
-        right_Drive.setPower(forward - turn);
-
-        // ================= LAUNCHER CONTROL =================
-        if (gamepad1.left_bumper) {
-            launcher.setVelocity(LAUNCHER_TARGET_VELOCITY);
-        }
-
-        if (gamepad1.b) {
-            launcher.setVelocity(STOP_SPEED);
-        }
-
-        // ================= FEEDER CONTROL =================
-        if (gamepad1.left_trigger > 0.1) {
-            leftFeeder.setPower(FEEDER_SPEED);
-            rightFeeder.setPower(FEEDER_SPEED);
-        } else {
-            leftFeeder.setPower(STOP_SPEED);
-            rightFeeder.setPower(STOP_SPEED);
-        }
-
-        // ================= TELEMETRY =================
-        telemetry.addData("Launcher Velocity", launcher.getVelocity());
-        telemetry.update();
-    }
+void loop() {
 }
