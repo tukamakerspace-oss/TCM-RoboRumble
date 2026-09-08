@@ -1,1 +1,138 @@
+//motor pins
+const int LEFT_STEP = 18;
+const int LEFT_DIR  = 19;
 
+const int RIGHT_STEP = 21;
+const int RIGHT_DIR  = 22;
+
+//Left joystick must move forward/backward
+const int LEFT_Y = 35;
+
+//Right joystick must move left/right
+const int RIGHT_X = 34;
+
+//joystck threshold
+const int CENTER_LOW  = 1800;
+const int CENTER_HIGH = 2300;
+
+const int MOVE_LOW  = 1500;
+const int MOVE_HIGH = 2500;
+
+void setup() {
+
+  pinMode(LEFT_STEP, OUTPUT);
+  pinMode(LEFT_DIR, OUTPUT);
+
+  pinMode(RIGHT_STEP, OUTPUT);
+  pinMode(RIGHT_DIR, OUTPUT);
+
+  pinMode(LEFT_Y, INPUT);
+  pinMode(RIGHT_X, INPUT);
+
+  Serial.begin(115200);
+
+  stopRobot();
+}
+
+//motor step
+void motorStep() {
+
+  digitalWrite(LEFT_STEP, HIGH);
+  digitalWrite(RIGHT_STEP, HIGH);
+
+  delayMicroseconds(25);
+
+  digitalWrite(LEFT_STEP, LOW);
+  digitalWrite(RIGHT_STEP, LOW);
+
+  delayMicroseconds(25);
+}
+
+//For foward
+void forward(int steps) {
+
+  digitalWrite(LEFT_DIR, HIGH);
+  digitalWrite(RIGHT_DIR, HIGH);
+
+  for (int i = 0; i < steps; i++) {
+    motorStep();
+  }
+}
+//for backward
+
+void backward(int steps) {
+
+  digitalWrite(LEFT_DIR, LOW);
+  digitalWrite(RIGHT_DIR, LOW);
+
+  for (int i = 0; i < steps; i++) {
+    motorStep();
+  }
+}
+
+// TURN LEFT
+void turnLeft(int steps) {
+
+  digitalWrite(LEFT_DIR, LOW);
+  digitalWrite(RIGHT_DIR, HIGH);
+
+  for (int i = 0; i < steps; i++) {
+    motorStep();
+  }
+}
+
+// TURN RIGHT
+void turnRight(int steps) {
+
+  digitalWrite(LEFT_DIR, HIGH);
+  digitalWrite(RIGHT_DIR, LOW);
+
+  for (int i = 0; i < steps; i++) {
+    motorStep();
+  }
+}
+
+// STOP
+void stopRobot() {
+
+  digitalWrite(LEFT_STEP, LOW);
+  digitalWrite(RIGHT_STEP, LOW);
+}
+
+//joystick control
+void loop() {
+
+  int leftY = analogRead(LEFT_Y);
+  int rightX = analogRead(RIGHT_X);
+
+  Serial.print("Left Y: ");
+  Serial.print(leftY);
+
+  Serial.print("   Right X: ");
+  Serial.println(rightX);
+
+  // move left stick up=forward
+  if (leftY > MOVE_HIGH) {
+    forward(1);
+  }
+
+  //move left stick down =BACKWARD
+  else if (leftY < MOVE_LOW) {
+    backward(1);
+  }
+
+  // move right stick left = turn LEFT
+  else if (rightX < MOVE_LOW) {
+    turnLeft(1);
+  }
+
+  // move right stick right = turn right
+  else if (rightX > MOVE_HIGH) {
+    turnRight(1);
+  }
+
+  // if both sticks are centered = stop
+  else {
+    stopRobot();
+  }
+}
