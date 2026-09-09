@@ -1,0 +1,111 @@
+// --- SKELETAL SENSOR & MOTOR PIN ASSIGNMENTS ---
+const int LEFT_STEP  = 18; // Pulses the left stepper driver board
+const int LEFT_DIR   = 19; // Controls left drive rotation direction
+
+const int RIGHT_STEP = 21; // Pulses the right stepper driver board
+const int RIGHT_DIR  = 22; // Controls right drive rotation direction
+
+// Analog Input Interface Channels
+const int LEFT_Y     = 35; // Input channel tracking forward/backward speed
+const int RIGHT_X    = 34; // Input channel tracking left/right steering pivot
+
+// Active Weapon System Control Interfaces (Newly Added)
+const int WEAPON_POT      = 32; // Analog input mapping weapon motor velocity (Trigger emulation)
+const int SOLENOID_BUTTON = 33; // Digital input pin mapping active solenoid pop command
+
+// High-Current Power Circuit Distribution Triggers (Newly Added)
+const int SAWS_PWM_PIN    = 25; // Delivers variable motor power to the 6,000 RPM saws
+const int RELAY_BUS_PIN   = 26; // Triggers isolated optical relay switchboard to fire solenoids
+
+// Joystick Deadzone Calibration Ranges
+const int STICK_DEADZONE_LOW  = 1800; // Center axis minimum cutoff threshold
+const int STICK_DEADZONE_HIGH = 2300; // Center axis maximum cutoff threshold
+const int STICK_MAX_RANGE     = 4095; // Maximum bounds for 12-bit ESP32 analog data reading
+
+void setup() {
+  // Configure drive motor pin channels as system outputs
+  pinMode(LEFT_STEP, OUTPUT);
+  pinMode(LEFT_DIR, OUTPUT);
+  pinMode(RIGHT_STEP, OUTPUT);
+  pinMode(RIGHT_DIR, OUTPUT);
+
+  // Configure high-current weapon terminal buses as system outputs
+  pinMode(SAWS_PWM_PIN, OUTPUT);
+  pinMode(RELAY_BUS_PIN, OUTPUT);
+
+  // Configure control hardware interfaces as inputs
+  pinMode(LEFT_Y, INPUT);
+  pinMode(RIGHT_X, INPUT);
+  pinMode(SOLENOID_BUTTON, INPUT_PULLUP); // Standard internal resistor wiring configuration
+
+  // Initialize internal serial communication bus for Wokwi debug terminal tracking
+  Serial.begin(115200);
+
+  // Safety State Default Reset: Force all actuators offline at launch
+  stopRobot();
+  digitalWrite(RELAY_BUS_PIN, LOW);
+  analogWrite(SAWS_PWM_PIN, 0);
+}
+
+void stopRobot() {
+  // Clear the step signal lines immediately to stop motion execution
+  digitalWrite(LEFT_STEP, LOW);
+  digitalWrite(RIGHT_STEP, LOW);
+}
+
+void loop() {
+  // 1. Read Current Controller Interface Inputs
+  int leftY = analogRead(LEFT_Y);
+  int rightX = analogRead(RIGHT_X);
+  int weaponInput = analogRead(WEAPON_POT);
+  bool fireSolenoids = (digitalRead(SOLENOID_BUTTON) == LOW); // True when button is pushed down
+
+  // Stream current values out to the Wokwi Serial Monitor for live logic inspection
+  Serial.print("Left Y (Speed): "); Serial.print(leftY);
+  Serial.print(" | Right X (Steer): "); Serial.print(rightX);
+  Serial.print(" | Weapon Pot: "); Serial.println(weaponInput);
+
+  // 2. MIXED TANK PROPULSION ALGORITHM (Concurrency Fix)
+  // Re-scale raw joystick data from raw center floors to directional mix vectors (-255 to +255)
+  int speedVector = 0;
+  int steerVector = 0;
+
+  if (leftY > STICK_DEADZONE_HIGH) speedVector = map(leftY, STICK_DEADZONE_HIGH, STICK_MAX_RANGE, 0, 255);
+  else if (leftY < STICK_DEADZONE_LOW) speedVector = map(leftY, 0, STICK_DEADZONE_LOW, -255, 0);
+
+  if (rightX > STICK_DEADZONE_HIGH) steerVector = map(rightX, STICK_DEADZONE_HIGH, STICK_MAX_RANGE, 0, 255);
+  else if (rightX < STICK_DEADZONE_LOW) steerVector = map(rightX, 0, STICK_DEADZONE_LOW, -255, 0);
+
+  // Mix vectors cleanly to combine steering and translation simultaneously
+  int leftMotorPower  = speedVector + steerVector;
+  int rightMotorPower = speedVector - steerVector;
+
+  // 3. EXECUTE MOVEMENT DIRECTION LOGIC
+  if (leftMotorPower == 0 && rightMotorPower == 0) {
+    stopRobot();
+  } else {
+    // Determine directional rotation paths based on mixed power signs
+    digitalWrite(LEFT_DIR, (leftMotorPower >= 0) ? HIGH : LOW);
+    digitalWrite(RIGHT_DIR, (rightMotorPower >= 0) ? HIGH : LOW); // Matches layout config
+
+    // Dispatch synchronous step pulse to active wheels
+    digitalWrite(LEFT_STEP, HIGH);
+    digitalWrite(RIGHT_STEP, HIGH);
+    delayMicroseconds(25); // Step frequency timing pulse
+    digitalWrite(LEFT_STEP, LOW);
+    digitalWrite(RIGHT_STEP, LOW);
+    delayMicroseconds(25);
+  }
+
+  // 4. ACTIVE SOLENOID DISCHARGE OPERATION
+  if (fireSolenoids) {
+    digitalWrite(RELAY_BUS_PIN, HIGH); // Closes relay, discharging current to fire launcher
+  } else {
+    digitalWrite(RELAY_BUS_PIN, LOW);  // Opens relay, enabling automatic spring resets
+  }
+
+  // 5. KINETIC WEAPON PROTECTION OVERRIDE (6,000 RPM SAWS)
+  // Maps the trigger dial values straight into output voltage levels (0 to 255 PWM steps)
+  int sawSpeedOutput = map(weaponInput, 0, STICK_MAX_RANGE, 0, 255);
+  analogWrite(SAWS_PWM_PIN, sawSpeedOutput);
+}
