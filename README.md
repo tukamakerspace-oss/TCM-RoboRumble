@@ -2,7 +2,7 @@
 
 Welcome to our official project repository for **Robo Rumble 2026**! This repository contains all of our engineering documentation, remote control configurations, and hardware logs.
 
-## 👥 Our Team
+## Our Team
 * **Team Name:** Tuka Curious Minds
 * **Category:** Robo Wars 
 * **Institution:** Community STEM Club under Engage and Empower NPC
