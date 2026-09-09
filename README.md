@@ -17,7 +17,7 @@ Welcome to our official project repository for Robo Rumble 2026. This repository
 
 ## Build & RC Software Stack
 * Microcontroller / Receiver: ESP32 and REV control hub
-* RC Controller: PS5
+* RC Controller: PS4
 * Key Components: DC motors, Battery, Mechanical parts
 
 ## How to Run the Code
